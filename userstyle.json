@@ -1,0 +1,19 @@
+{
+  "name":         "Theme Name",
+  "description":  "A theme for ...",
+  "version":      "0.1.0",
+  "author":       "Author Name <author@somewhere.com>",
+  "namespace":    "https://github.com/author",
+  "homepageURL":  "https://github.com/author/theme",
+  "supportURL":   "https://github.com/author/theme/issues",
+  "downloadURL":  "https://github.com/author/theme/raw/master/release/theme.user.css",
+  "updateURL":    "https://github.com/author/theme/raw/master/release/theme.user.css",
+  "license":      "MIT",
+  "preprocessor": "default",
+  "include": [
+    "http://somewhere.com/*",
+    "https://somewhere.com/*",
+    "http://*.somewhere.com/*",
+    "https://*.somewhere.com/*"
+  ]
+}
