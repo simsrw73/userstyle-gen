@@ -6,6 +6,9 @@ const os = require('os');
 
 const USERSTYLE_JSON = 'userstyle.json';
 
+const META_DEFAULT_VERSION = '1.0.0';
+const META_DEFAULT_NAMESPACE = 'openusercss.org';
+const META_DEFAULT_LICENSE = 'MIT';
 
 module.exports = UserStyle;
 function UserStyle () {
@@ -53,11 +56,14 @@ UserStyle.prototype.readMeta = function (filename) {
   return meta;
 }
 
-function mergeProperty(obj1, obj2, prop) {
-  let obj1final = (obj1) ? (obj1[prop] ? obj1[prop] : undefined) : undefined;
-  let obj2final = (obj2) ? (obj2[prop] ? obj2[prop] : undefined) : undefined;
-  let final = obj1final || obj2final;
-  return final;
+function getFirstPropValOf(propName, objList, defValue) {
+  let final;
+  for (let i = 0; i < objList.length; i++) {
+    if (objList[i] && propName in objList[i]) {
+      final = final || objList[i][propName];
+    }
+  }
+  return final || defValue;
 }
 
 UserStyle.prototype.deriveUserstyleJSON = function(home, project) {
@@ -67,18 +73,18 @@ UserStyle.prototype.deriveUserstyleJSON = function(home, project) {
   const dirs = process.cwd().split(path.sep);
   const projectDir = dirs[dirs.length-1];
 
-  meta.name         = mergeProperty(home, project, 'name')         || projectDir;
-  meta.version      = mergeProperty(home, project, 'version')      || '1.0.0';
-  meta.description  = mergeProperty(home, project, 'description')  || '';
-  meta.author       = mergeProperty(home, project, 'author')       || '';
-  meta.namespace    = mergeProperty(home, project, 'namespace')    || 'openusercss.org';
-  meta.homepageURL  = mergeProperty(home, project, 'homepageURL')  || '';
-  meta.supportURL   = mergeProperty(home, project, 'supportURL')   || '';
-  meta.downloadURL  = mergeProperty(home, project, 'downloadURL')  || '';
-  meta.updateURL    = mergeProperty(home, project, 'updateURL')    || '';
-  meta.license      = mergeProperty(home, project, 'license')      || 'MIT';
-  meta.preprocessor = mergeProperty(home, project, 'preprocessor') || '';
-  meta.include      = mergeProperty(home, project, 'include')      || [];
+  meta.name         = getFirstPropValOf('name',         [project, home], projectDir            );
+  meta.version      = getFirstPropValOf('version',      [project, home], META_DEFAULT_VERSION  );
+  meta.description  = getFirstPropValOf('description',  [project, home], ''                    );
+  meta.author       = getFirstPropValOf('author',       [project, home], ''                    );
+  meta.namespace    = getFirstPropValOf('namespace',    [project, home], META_DEFAULT_NAMESPACE);
+  meta.homepageURL  = getFirstPropValOf('homepageURL',  [project, home], ''                    );
+  meta.supportURL   = getFirstPropValOf('supportURL',   [project, home], ''                    );
+  meta.downloadURL  = getFirstPropValOf('downloadURL',  [project, home], ''                    );
+  meta.updateURL    = getFirstPropValOf('updateURL',    [project, home], ''                    );
+  meta.license      = getFirstPropValOf('license',      [project, home], META_DEFAULT_LICENSE  );
+  meta.preprocessor = getFirstPropValOf('preprocessor', [project, home], ''                    );
+  meta.include      = getFirstPropValOf('include',      [project, home], []                    );
 
   return meta;
 }
