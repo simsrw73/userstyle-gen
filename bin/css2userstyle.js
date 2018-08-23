@@ -2,13 +2,10 @@
 
 'use strict';
 
-
 // TODO:
-//  - Robust prop checks for userstyle_props
+//  - Robust prop checks for userstyleProps
 //  - Setup include/match/domain checks in metadata
 //  - Handle various other meta properties, @vars, etc.
-
-
 
 const fs = require('fs');
 const path = require('path');
@@ -17,85 +14,84 @@ const through = require('through2');
 
 const yargs = require('yargs');
 const argv = yargs
-  .usage("$0 <style.css> [options]")
+  .usage('$0 <style.css> [options]')
   .demand(1)
   .options({
-    'basename': {
-      'alias':       'b',
-      'describe':    'Basename of output file(s), to which .user.css or .user.js will be appended',
-      'requiresArg': true,
-      'type':        'string'
+    basename: {
+      alias: 'b',
+      describe:
+        'Basename of output file(s), to which .user.css or .user.js will be appended',
+      requiresArg: true,
+      type: 'string'
     },
-    'output': {
-      'alias':       'o',
-      'describe':    'Output directory',
-      'requiresArg': true,
-      'type':        'string'
+    output: {
+      alias: 'o',
+      describe: 'Output directory',
+      requiresArg: true,
+      type: 'string'
     },
-    'replace': {
-      'describe': 'The user.css file will replace the source file'
+    replace: {
+      describe: 'The user.css file will replace the source file'
     },
     'usercss-only': {
-      'describe': 'Output only the user.css file'
+      describe: 'Output only the user.css file'
     },
     'userjs-only': {
-      'describe': 'Output only the user.js & meta.js files'
+      describe: 'Output only the user.js & meta.js files'
     }
   })
   .help()
-  .version()
-  .argv;
-
+  .version().argv;
 
 const srcPathname = path.normalize(argv._.pop());
 const srcPathParts = path.parse(srcPathname);
 
-const destDir = argv['output'] ? argv['output'] : srcPathParts.dir;
-const destBasename = argv['basename'] ? argv['basename'] : srcPathParts.name;
+const destDir = argv.output ? argv.output : srcPathParts.dir;
+const destBasename = argv.basename ? argv.basename : srcPathParts.name;
 
 const metaJSFilename = path.join(destDir, destBasename + '.meta.js');
 const userJSFilename = path.join(destDir, destBasename + '.user.js');
 const userCSSFilename = path.join(destDir, destBasename + '.user.css');
 
-
 const source = fs.createReadStream(srcPathname, { encoding: 'utf8' });
 const lineStream = byline.createStream(source);
 
-const metaJS = fs.createWriteStream(metaJSFilename, { encoding: 'utf8'});
-const userJS = fs.createWriteStream(userJSFilename, { encoding: 'utf8'});
-const userCSS = fs.createWriteStream(userCSSFilename, { encoding: 'utf8'});
+const metaJS = fs.createWriteStream(metaJSFilename, { encoding: 'utf8' });
+const userJS = fs.createWriteStream(userJSFilename, { encoding: 'utf8' });
+const userCSS = fs.createWriteStream(userCSSFilename, { encoding: 'utf8' });
 
-
-const userstyle_props = {
-  'name': {
-    'required': true
+const userstyleProps = {
+  name: {
+    required: true
   },
-  'description': "",
-  'version': {
-    'required': true
+  description: '',
+  version: {
+    required: true
   },
-  'author': "",
-  'license': "",
-  'namespace': {
-    'required': true
+  author: '',
+  license: '',
+  namespace: {
+    required: true
   },
-  'homepageURL': "",
-  'supportURL': "",
-  'updateBaseURL': "",
-  'updateURL': "",
-  'downloadURL': {
+  homepageURL: '',
+  supportURL: '',
+  updateBaseURL: '',
+  updateURL: '',
+  downloadURL: {
     usercss: false
   },
-  'preprocessor': "",
+  preprocessor: '',
   'run-at': {
-    'default': 'document-start',
-    'usercss': false
+    default: 'document-start',
+    usercss: false
   }
 };
 
 let longestPropLength = 0;
-for (let prop in userstyle_props) {
-  longestPropLength = prop.length > longestPropLength ? prop.length : longestPropLength;
+for (let prop in userstyleProps) {
+  if (Object.prototype.hasOwnProperty.call(userstyleProps, prop)) {
+    longestPropLength = prop.length > longestPropLength ? prop.length : longestPropLength;
+  }
 }
 
 function _padPropName(name, length) {
@@ -105,38 +101,39 @@ function _padPropName(name, length) {
 
 const meta = resolveMeta();
 
-
-
-// === setup user.css conversion ===
+/*
+ *
+ *  === setup user.css conversion ===
+ *
+ */
 
 function formatUserstyleCSSHeader(meta) {
-  let CSSmeta = JSON.parse(JSON.stringify(meta)); // local copy
+  let CSSmeta = JSON.parse(JSON.stringify(meta)); // Local copy
 
   // Fix-ups
   if (_safePropGet('updateURL', CSSmeta)) {
-    CSSmeta['updateURL'] += '.user.css';
+    CSSmeta.updateURL += '.user.css';
   }
 
   let header = '';
-  header += `/* ==UserStyle==\n`;
+  header += '/* ==UserStyle==\n';
 
-  for (let prop in userstyle_props) {
-    if (  _safePropGet(prop, CSSmeta) && _isAllowedCSSMetaProp(prop) ) {
-      header += `@${ _padPropName(prop, longestPropLength) } ${ CSSmeta[prop] }\n`;
+  for (let prop in userstyleProps) {
+    if (_safePropGet(prop, CSSmeta) && _isAllowedCSSMetaProp(prop)) {
+      header += `@${_padPropName(prop, longestPropLength)} ${CSSmeta[prop]}\n`;
     }
   }
 
-  header += `==/UserStyle== */\n`;
+  header += '==/UserStyle== */\n';
   return header;
 }
 
-
 userCSS.write(formatUserstyleCSSHeader(meta));
-userCSS.write(`@-moz-document domain("domain.com") {\n`);
+userCSS.write('@-moz-document domain("domain.com") {\n');
 
 let toUserCSS = through(
-  function write (line, enc, next) {
-    this.push(`  ${ line }\n`);
+  function write(line, enc, next) {
+    this.push(`  ${line}\n`);
     next();
   },
   function flush(flush) {
@@ -147,53 +144,53 @@ let toUserCSS = through(
 
 lineStream.pipe(toUserCSS).pipe(userCSS);
 
-
-
-// === setup user.js conversion ===
+/*
+ *
+ *  === setup user.js conversion ===
+ *
+ */
 
 function formatUserJSHeader(meta) {
-  let JSmeta = JSON.parse(JSON.stringify(meta)); // local copy
+  let JSmeta = JSON.parse(JSON.stringify(meta)); // Local copy
 
   // Fix-ups
   if (_safePropGet('updateURL', JSmeta)) {
-    JSmeta['updateURL'] = JSmeta['updateURL'] + '.meta.js';
+    JSmeta.updateURL += '.meta.js';
   }
 
   if (_safePropGet('downloadURL', JSmeta)) {
-    JSmeta['downloadURL'] += '.user.js';
+    JSmeta.downloadURL += '.user.js';
   }
 
   let header = '';
-  header += `// ==UserScript==\n`;
+  header += '// ==UserScript==\n';
 
-  for (let prop in userstyle_props) {
-    if ( _safePropGet(prop, JSmeta) && _isAllowedJSMetaProp(prop) ) {
-      header += `// @${ _padPropName(prop, longestPropLength) } ${ JSmeta[prop] }\n`;
+  for (let prop in userstyleProps) {
+    if (_safePropGet(prop, JSmeta) && _isAllowedJSMetaProp(prop)) {
+      header += `// @${_padPropName(prop, longestPropLength)} ${JSmeta[prop]}\n`;
     }
   }
 
-  header += `// ==/UserScript==\n`;
+  header += '// ==/UserScript==\n';
   return header;
 }
-
 
 const userJSHeader = formatUserJSHeader(meta);
 metaJS.write(userJSHeader);
 userJS.write(userJSHeader);
-userJS.write(`(function() {var css = [\n`);
+userJS.write('(function() {var css = [\n');
 
 let toUserJS = through(
   function write(line, enc, next) {
     let s = line.toString('utf8');
     s = s.replace(/\\/g, '\\\\');
-    s = s.replace(/(["'])/g, "\\$1");
+    s = s.replace(/(["'])/g, '\\$1');
     s = `  "  ${s}",\n`;
     this.push(Buffer.from(s, 'utf8'));
     next();
   },
   function flush(flush) {
-    const foot =
-`  ""
+    const foot = `  ""
 ].join("\\n");
 if (typeof GM_addStyle != "undefined") {
   GM_addStyle(css);
@@ -222,36 +219,40 @@ if (typeof GM_addStyle != "undefined") {
 
 lineStream.pipe(toUserJS).pipe(userJS);
 
-
-
-// === Resolve metadata ===
+/*
+ *
+ *  === Resolve metadata ===
+ *
+ */
 
 function resolveMeta() {
   const userstyleJSON = _readMeta('userstyle.json') || {};
   const packageJSON = _readMeta('package.json') || {};
-  const package_userstyle = _safePropGet('userstyle', packageJSON, {});
+  const packageUserstyle = _safePropGet('userstyle', packageJSON, {});
 
   let meta = {};
 
-  for (let prop in userstyle_props) {
-    meta[prop] = _getFirstPropOf(prop, [userstyleJSON, package_userstyle, packageJSON]);
-    if (meta[prop] == undefined && typeof userstyle_props[prop] === 'object') {
-      meta[prop] = _safePropGet('default', userstyle_props[prop]);
+  for (let prop in userstyleProps) {
+    if (Object.prototype.hasOwnProperty.call(userstyleProps, prop)) {
+      meta[prop] = _getFirstPropOf(prop, [userstyleJSON, packageUserstyle, packageJSON]);
+      if (meta[prop] === undefined && typeof userstyleProps[prop] === 'object') {
+        meta[prop] = _safePropGet('default', userstyleProps[prop]);
+      }
     }
   }
 
-  // fix-ups
+  // Fix-ups
   if (_safePropGet('updateBaseURL', meta)) {
-    let url = meta['updateBaseURL'];
-    if (url[url.length-1] != '/') url += '/';
-    meta['updateURL'] = url + destBasename;
-    delete meta['updateBaseURL'];
+    let url = meta.updateBaseURL;
+    if (url[url.length - 1] !== '/') url += '/';
+    meta.updateURL = url + destBasename;
+    delete meta.updateBaseURL;
   }
 
   if (_safePropGet('updateURL', meta) && !_safePropGet('downloadURL', meta)) {
     // TODO: handle *.user.js vs *.meta.js naming
     // as well as *.js vs *.css
-    meta['downloadURL'] = meta['updateURL'];
+    meta.downloadURL = meta.updateURL;
   }
 
   return meta;
@@ -263,20 +264,22 @@ function resolveMeta() {
       const raw = fs.readFileSync(filename, 'utf8');
       meta = JSON.parse(raw);
     } catch (err) {
-      // return empty
+      // Return empty
     }
 
     return meta;
   }
 }
 
-
-
-// === Utility ===
+/*
+ *
+ *  === Utility ===
+ *
+ */
 
 function _safePropGet(prop, obj, def = undefined) {
-  const result = (obj == null) ? undefined : obj[prop];
-  return (result !== undefined) ? result : def;
+  const result = typeof obj === 'undefined' ? undefined : obj[prop];
+  return result === undefined ? def : result;
 }
 
 function _getFirstPropOf(prop, objs) {
@@ -285,9 +288,15 @@ function _getFirstPropOf(prop, objs) {
 }
 
 function _isAllowedCSSMetaProp(prop) {
-  return ! ( typeof userstyle_props[prop] === 'object' && !_safePropGet('usercss', userstyle_props[prop], true) );
+  return !(
+    typeof userstyleProps[prop] === 'object' &&
+    !_safePropGet('usercss', userstyleProps[prop], true)
+  );
 }
 
 function _isAllowedJSMetaProp(prop) {
-  return ! ( typeof userstyle_props[prop] === 'object' && !_safePropGet('userjs', userstyle_props[prop], true) );
+  return !(
+    typeof userstyleProps[prop] === 'object' &&
+    !_safePropGet('userjs', userstyleProps[prop], true)
+  );
 }

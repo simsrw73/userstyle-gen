@@ -1,0 +1,20 @@
+{
+  "extends": ["xo", "prettier"],
+  "env": {
+    "jest": true,
+    "node": true
+  },
+  "rules": {
+    "func-names": ["error", "as-needed"],
+    "quotes": ["error", "single"],
+
+    "prettier/prettier": [
+      "error",
+      {
+        "singleQuote": true,
+        "printWidth": 90
+      }
+    ]
+  },
+  "plugins": ["prettier"]
+}
