@@ -1,6 +1,6 @@
 {
   "name": "userstyle-gen",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Convert CSS to userstyles (user.css) and userscripts (user.js)",
   "author": "Randy W. Sims <simsrw73@gmail.com>",
   "license": "MIT",
@@ -10,9 +10,13 @@
     "usercss",
     "userjs"
   ],
+  "homepage": "https://github.com/simsrw73/userstyle-gen#readme",
   "repository": {
     "type": "git",
     "url": "https://github.com/simsrw73/userstyle-gen.git"
+  },
+  "bugs": {
+    "url": "https://github.com/simsrw73/userstyle-gen/issues"
   },
   "main": "index.js",
   "bin": {
