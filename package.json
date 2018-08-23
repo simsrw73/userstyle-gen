@@ -1,8 +1,12 @@
 {
   "name": "userstyle-gen",
   "version": "0.1.0",
-  "description": "Convert CSS to userstyles (user.css) and userscripts (user.js)",
-  "author": "Randy W. Sims <simsrw73@gmail.com>",
+  "description": "Generate user.css and user.js from CSS input",
+  "author": {
+    "name": "Randy W. Sims",
+    "email": "simsrw73@gmail.com",
+    "url": "https://github.com/simsrw73"
+  },
   "license": "MIT",
   "keywords": [
     "userstyle",
@@ -18,11 +22,70 @@
   "bugs": {
     "url": "https://github.com/simsrw73/userstyle-gen/issues"
   },
-  "main": "index.js",
+  "main": "lib/index.js",
   "bin": {
     "css2userstyle": "bin/css2userstyle.js"
   },
+  "files": [
+    "lib"
+  ],
   "devDependencies": {
+    "coveralls": "^3.0.0",
+    "eslint": "^4.19.1",
+    "eslint-config-prettier": "^2.9.0",
+    "eslint-config-xo": "^0.20.1",
+    "eslint-plugin-prettier": "^2.6.0",
+    "husky": "^0.14.3",
+    "jest": "^22.0.6",
+    "lint-staged": "^6.1.1",
+    "nsp": "^2.8.0",
+    "prettier": "^1.11.1"
+  },
+  "engines": {
+    "npm": ">= 4.0.0"
+  },
+  "scripts": {
+    "prepublishOnly": "nsp check",
+    "pretest": "eslint .",
+    "precommit": "lint-staged",
+    "test": "jest"
+  },
+  "lint-staged": {
+    "*.js": [
+      "eslint --fix",
+      "git add"
+    ],
+    "*.json": [
+      "prettier --write",
+      "git add"
+    ]
+  },
+  "eslintConfig": {
+    "extends": [
+      "xo",
+      "prettier"
+    ],
+    "env": {
+      "jest": true,
+      "node": true
+    },
+    "rules": {
+      "prettier/prettier": [
+        "error",
+        {
+          "singleQuote": true,
+          "printWidth": 90
+        }
+      ]
+    },
+    "plugins": [
+      "prettier"
+    ]
+  },
+  "jest": {
+    "testEnvironment": "node"
+  },
+  "dependencies": {
     "byline": "^5.0.0",
     "through2": "^2.0.3",
     "yargs": "^12.0.1"

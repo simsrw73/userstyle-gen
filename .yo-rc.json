@@ -1,0 +1,9 @@
+{
+  "generator-node": {
+    "promptValues": {
+      "authorName": "Randy W. Sims",
+      "authorEmail": "simsrw73@gmail.com",
+      "authorUrl": "https://github.com/simsrw73"
+    }
+  }
+}
