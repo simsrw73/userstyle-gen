@@ -1,7 +1,5 @@
 #!/usr/bin/env node
 
-'use strict';
-
 // TODO:
 //  - Robust prop checks for userstyleProps
 //  - Setup include/match/domain checks in metadata
@@ -12,8 +10,7 @@ const path = require('path');
 const byline = require('byline');
 const through = require('through2');
 
-const yargs = require('yargs');
-const argv = yargs
+const yargv = require('yargs')
   .usage('$0 <style.css> [options]')
   .demand(1)
   .options({
@@ -43,15 +40,15 @@ const argv = yargs
   .help()
   .version().argv;
 
-const srcPathname = path.normalize(argv._.pop());
+const srcPathname = path.normalize(yargv._.pop());
 const srcPathParts = path.parse(srcPathname);
 
-const destDir = argv.output ? argv.output : srcPathParts.dir;
-const destBasename = argv.basename ? argv.basename : srcPathParts.name;
+const destDir = yargv.output ? yargv.output : srcPathParts.dir;
+const destBasename = yargv.basename ? yargv.basename : srcPathParts.name;
 
-const metaJSFilename = path.join(destDir, destBasename + '.meta.js');
-const userJSFilename = path.join(destDir, destBasename + '.user.js');
-const userCSSFilename = path.join(destDir, destBasename + '.user.css');
+const metaJSFilename = path.join(destDir, `${destBasename}.meta.js`);
+const userJSFilename = path.join(destDir, `${destBasename}.user.js`);
+const userCSSFilename = path.join(destDir, `${destBasename}.user.css`);
 
 const source = fs.createReadStream(srcPathname, { encoding: 'utf8' });
 const lineStream = byline.createStream(source);
@@ -88,15 +85,14 @@ const userstyleProps = {
 };
 
 let longestPropLength = 0;
-for (let prop in userstyleProps) {
-  if (Object.prototype.hasOwnProperty.call(userstyleProps, prop)) {
-    longestPropLength = prop.length > longestPropLength ? prop.length : longestPropLength;
-  }
-}
+Object.keys(userstyleProps).forEach(prop => {
+  longestPropLength = prop.length > longestPropLength ? prop.length : longestPropLength;
+});
 
 function _padPropName(name, length) {
-  while (name.length < length) name += ' ';
-  return name;
+  let paddedName = name;
+  while (paddedName.length < length) paddedName += ' ';
+  return paddedName;
 }
 
 const meta = resolveMeta();
@@ -107,8 +103,8 @@ const meta = resolveMeta();
  *
  */
 
-function formatUserstyleCSSHeader(meta) {
-  let CSSmeta = JSON.parse(JSON.stringify(meta)); // Local copy
+function formatUserstyleCSSHeader(metadata) {
+  const CSSmeta = JSON.parse(JSON.stringify(metadata)); // Local copy
 
   // Fix-ups
   if (_safePropGet('updateURL', CSSmeta)) {
@@ -118,11 +114,11 @@ function formatUserstyleCSSHeader(meta) {
   let header = '';
   header += '/* ==UserStyle==\n';
 
-  for (let prop in userstyleProps) {
+  Object.keys(userstyleProps).forEach(prop => {
     if (_safePropGet(prop, CSSmeta) && _isAllowedCSSMetaProp(prop)) {
       header += `@${_padPropName(prop, longestPropLength)} ${CSSmeta[prop]}\n`;
     }
-  }
+  });
 
   header += '==/UserStyle== */\n';
   return header;
@@ -131,14 +127,14 @@ function formatUserstyleCSSHeader(meta) {
 userCSS.write(formatUserstyleCSSHeader(meta));
 userCSS.write('@-moz-document domain("domain.com") {\n');
 
-let toUserCSS = through(
-  function write(line, enc, next) {
+const toUserCSS = through(
+  function write(line, enc, nextFn) {
     this.push(`  ${line}\n`);
-    next();
+    nextFn();
   },
-  function flush(flush) {
+  function flush(flushFn) {
     this.push('};');
-    flush();
+    flushFn();
   }
 );
 
@@ -150,8 +146,8 @@ lineStream.pipe(toUserCSS).pipe(userCSS);
  *
  */
 
-function formatUserJSHeader(meta) {
-  let JSmeta = JSON.parse(JSON.stringify(meta)); // Local copy
+function formatUserJSHeader(metadata) {
+  const JSmeta = JSON.parse(JSON.stringify(metadata)); // Local copy
 
   // Fix-ups
   if (_safePropGet('updateURL', JSmeta)) {
@@ -165,11 +161,11 @@ function formatUserJSHeader(meta) {
   let header = '';
   header += '// ==UserScript==\n';
 
-  for (let prop in userstyleProps) {
+  Object.keys(userstyleProps).forEach(prop => {
     if (_safePropGet(prop, JSmeta) && _isAllowedJSMetaProp(prop)) {
       header += `// @${_padPropName(prop, longestPropLength)} ${JSmeta[prop]}\n`;
     }
-  }
+  });
 
   header += '// ==/UserScript==\n';
   return header;
@@ -180,16 +176,16 @@ metaJS.write(userJSHeader);
 userJS.write(userJSHeader);
 userJS.write('(function() {var css = [\n');
 
-let toUserJS = through(
-  function write(line, enc, next) {
+const toUserJS = through(
+  function write(line, enc, nextFn) {
     let s = line.toString('utf8');
     s = s.replace(/\\/g, '\\\\');
     s = s.replace(/(["'])/g, '\\$1');
     s = `  "  ${s}",\n`;
     this.push(Buffer.from(s, 'utf8'));
-    next();
+    nextFn();
   },
-  function flush(flush) {
+  function flush(flushFn) {
     const foot = `  ""
 ].join("\\n");
 if (typeof GM_addStyle != "undefined") {
@@ -213,7 +209,7 @@ if (typeof GM_addStyle != "undefined") {
 })();
 `;
     this.push(foot);
-    flush();
+    flushFn();
   }
 );
 
@@ -230,44 +226,42 @@ function resolveMeta() {
   const packageJSON = _readMeta('package.json') || {};
   const packageUserstyle = _safePropGet('userstyle', packageJSON, {});
 
-  let meta = {};
+  const newMeta = {};
 
-  for (let prop in userstyleProps) {
-    if (Object.prototype.hasOwnProperty.call(userstyleProps, prop)) {
-      meta[prop] = _getFirstPropOf(prop, [userstyleJSON, packageUserstyle, packageJSON]);
-      if (meta[prop] === undefined && typeof userstyleProps[prop] === 'object') {
-        meta[prop] = _safePropGet('default', userstyleProps[prop]);
-      }
+  Object.keys(userstyleProps).forEach(prop => {
+    newMeta[prop] = _getFirstPropOf(prop, [userstyleJSON, packageUserstyle, packageJSON]);
+    if (newMeta[prop] === undefined && typeof userstyleProps[prop] === 'object') {
+      newMeta[prop] = _safePropGet('default', userstyleProps[prop]);
     }
-  }
+  });
 
   // Fix-ups
-  if (_safePropGet('updateBaseURL', meta)) {
-    let url = meta.updateBaseURL;
+  if (_safePropGet('updateBaseURL', newMeta)) {
+    let url = newMeta.updateBaseURL;
     if (url[url.length - 1] !== '/') url += '/';
-    meta.updateURL = url + destBasename;
-    delete meta.updateBaseURL;
+    newMeta.updateURL = url + destBasename;
+    delete newMeta.updateBaseURL;
   }
 
-  if (_safePropGet('updateURL', meta) && !_safePropGet('downloadURL', meta)) {
+  if (_safePropGet('updateURL', newMeta) && !_safePropGet('downloadURL', newMeta)) {
     // TODO: handle *.user.js vs *.meta.js naming
     // as well as *.js vs *.css
-    meta.downloadURL = meta.updateURL;
+    newMeta.downloadURL = newMeta.updateURL;
   }
 
-  return meta;
+  return newMeta;
 
   function _readMeta(filename) {
-    let meta = {};
+    let metadata = {};
     try {
-      fs.accessSync(filename, fs.constants.F_OK | fs.constants.R_OK);
+      fs.accessSync(filename, fs.constants.F_OK | fs.constants.R_OK); // eslint-disable-line no-bitwise
       const raw = fs.readFileSync(filename, 'utf8');
-      meta = JSON.parse(raw);
+      metadata = JSON.parse(raw);
     } catch (err) {
       // Return empty
     }
 
-    return meta;
+    return metadata;
   }
 }
 
@@ -283,7 +277,7 @@ function _safePropGet(prop, obj, def = undefined) {
 }
 
 function _getFirstPropOf(prop, objs) {
-  let result = objs.find(obj => _safePropGet(prop, obj));
+  const result = objs.find(obj => _safePropGet(prop, obj));
   return _safePropGet(prop, result);
 }
 
