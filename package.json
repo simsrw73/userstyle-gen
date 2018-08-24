@@ -30,7 +30,8 @@
     "lib"
   ],
   "engines": {
-    "node": ">= 6.14.4"
+    "node": ">= 6.14.4",
+    "npm": ">= 4.0.0"
   },
   "devDependencies": {
     "coveralls": "^3.0.0",
@@ -43,9 +44,6 @@
     "lint-staged": "^6.1.1",
     "nsp": "^2.8.0",
     "prettier": "^1.11.1"
-  },
-  "engines": {
-    "npm": ">= 4.0.0"
   },
   "scripts": {
     "prepublishOnly": "nsp check",
