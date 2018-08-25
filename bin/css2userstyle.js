@@ -4,7 +4,6 @@
 //  - Robust prop checks for userstyleSpec
 //  - Setup include/match/domain checks in metadata
 //  - Handle various other meta properties, @vars, etc.
-// os.tmpdir
 
 const fs = require('fs');
 const path = require('path');
@@ -27,9 +26,6 @@ const yargv = require('yargs')
       describe: 'Output directory',
       requiresArg: true,
       type: 'string'
-    },
-    replace: {
-      describe: 'The user.css file will replace the source file'
     },
     'usercss-only': {
       describe: 'Output only the user.css file'
