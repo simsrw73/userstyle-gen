@@ -2,13 +2,13 @@
 
 // TODO:
 //  - Robust prop checks for userstyleSpec
-//  - Setup include/match/domain checks in metadata
 //  - Handle various other meta properties, @vars, etc.
 
 const fs = require('fs');
 const path = require('path');
 const byline = require('byline');
 const through = require('through2');
+const url = require('url');
 
 const yargv = require('yargs')
   .usage('$0 <style.css> [options]')
@@ -81,7 +81,8 @@ const userstyleSpec = {
   'run-at': {
     default: 'document-start',
     usercss: false
-  }
+  },
+  match: ''
 };
 
 let longestPropLength = 0;
@@ -109,26 +110,34 @@ function formatUserstyleCSSHeader(metadata) {
   let header = '';
   header += '/* ==UserStyle==\n';
 
+  let documentRules;
+
   Object.keys(userstyleSpec).forEach(prop => {
     if (_safePropGet(prop, CSSmeta) && _isAllowedCSSMetaProp(prop)) {
-      header += `@${_padPropName(prop, longestPropLength)} ${CSSmeta[prop]}\n`;
+      if (prop === 'match') {
+        documentRules = metadata.match;
+      } else {
+        header += `@${_padPropName(prop, longestPropLength)} ${CSSmeta[prop]}\n`;
+      }
     }
   });
 
   header += '==/UserStyle== */\n';
+  if (documentRules && Object.keys(documentRules).length) {
+    header += `@-moz-document\n  ${documentRules.join(',\n  ')}\n{\n`;
+  }
   return header;
 }
 
 userCSS.write(formatUserstyleCSSHeader(userCSSmeta));
-userCSS.write('@-moz-document domain("domain.com") {\n');
 
 const toUserCSS = through(
   function write(line, enc, nextFn) {
-    this.push(`  ${line}\n`);
+    this.push(`  ${line}\n`); // TODO: Here and JS, don't indent if there are no document rules.
     nextFn();
   },
   function flush(flushFn) {
-    this.push('};');
+    if (userCSSmeta.match && userCSSmeta.match.length) this.push('};');
     flushFn();
   }
 );
@@ -149,7 +158,13 @@ function formatUserJSHeader(metadata) {
 
   Object.keys(userstyleSpec).forEach(prop => {
     if (_safePropGet(prop, JSmeta) && _isAllowedJSMetaProp(prop)) {
-      header += `// @${_padPropName(prop, longestPropLength)} ${JSmeta[prop]}\n`;
+      if (prop === 'match') {
+        _safePropGet(prop, JSmeta).forEach(include => {
+          header += `// @${_padPropName('include', longestPropLength)} ${include}\n`;
+        });
+      } else {
+        header += `// @${_padPropName(prop, longestPropLength)} ${JSmeta[prop]}\n`;
+      }
     }
   });
 
@@ -215,27 +230,59 @@ function resolveMeta() {
   const CSSMeta = {};
   const JSMeta = {};
 
-  Object.keys(userstyleSpec).forEach(prop => {
+  // TODO: Handle case where no value & no default
+  Object.entries(userstyleSpec).forEach(entry => {
+    const [prop, spec] = entry;
     let value = _getFirstPropOf(prop, [userstyleJSON, packageUserstyle, packageJSON]);
     const isObjectSpec = typeof userstyleSpec[prop] === 'object';
 
     // Assign default value if no value given
     if (typeof value === 'undefined' && isObjectSpec) {
-      value = _safePropGet('default', userstyleSpec[prop]);
+      value = _safePropGet('default', spec);
     }
 
-    if (prop === 'updateBaseURL') {
+    // Fix-ups
+    if (prop === 'author' && typeof value === 'object') {
+      const authorName = _safePropGet('name', value);
+      const authorEmail = _safePropGet('email', value);
+      const authorUrl = _safePropGet('url', value);
+
+      value = authorName;
+      if (typeof authorEmail !== 'undefined') value += ` <${authorEmail}>`;
+      if (typeof authorUrl !== 'undefined') value += ` (${authorUrl})`;
+    }
+
+    if (prop === 'match') {
+      if (typeof value !== 'object') _croak(`Value for '${prop}' is invalid type!`);
+      const matchCSS = [];
+      const matchJS = [];
+      Object.keys(value).forEach(matchType => {
+        if (typeof value[matchType] === 'string') {
+          _validateMatchURL(value[matchType], matchType);
+          matchCSS.push(_userstyleMatchtoUserCSSMatch(value[matchType], matchType));
+          matchJS.push(..._userstyleMatchtoUserJSMatch(value[matchType], matchType));
+        } else {
+          value[matchType].forEach(matchTypeValue => {
+            _validateMatchURL(matchTypeValue, matchType);
+            matchCSS.push(_userstyleMatchtoUserCSSMatch(matchTypeValue, matchType));
+            matchJS.push(..._userstyleMatchtoUserJSMatch(matchTypeValue, matchType));
+          });
+        }
+      });
+      CSSMeta.match = matchCSS;
+      JSMeta.match = matchJS;
+    } else if (prop === 'updateBaseURL') {
       if (value[value.length - 1] !== '/') value += '/';
       CSSMeta.updateURL = `${value + destBasename}.user.css`;
       JSMeta.updateURL = `${value + destBasename}.meta.js`;
       JSMeta.downloadURL = `${value + destBasename}.user.js`;
-    } else if (isObjectSpec && _safePropGet('derived', userstyleSpec[prop]) === true) {
+    } else if (isObjectSpec && _safePropGet('derived', spec) === true) {
       // do nothing for derived properties
     }
     // Assign to userjs and/or usercss meta objects as specified
-    else if (isObjectSpec && _safePropGet('usercss', userstyleSpec[prop]) === false) {
+    else if (isObjectSpec && _safePropGet('usercss', spec) === false) {
       JSMeta[prop] = value;
-    } else if (isObjectSpec && _safePropGet('userjs', userstyleSpec[prop]) === false) {
+    } else if (isObjectSpec && _safePropGet('userjs', spec) === false) {
       CSSMeta[prop] = value;
     } else {
       CSSMeta[prop] = value;
@@ -257,6 +304,88 @@ function resolveMeta() {
 
     return metadata;
   }
+}
+
+function _validateMatchURL(match, type) {
+  const validURL = url.parse(match);
+  const containsWildcard = match.match(/\*/);
+
+  switch (type) {
+    case 'url':
+      if (typeof validURL.protocol !== 'string' || containsWildcard) {
+        _croak(
+          `Invalid 'url' rule: '${match}'\n` +
+            'URL rules should contain a URL you want to affect, including protocol. Wildcards are not permitted.'
+        );
+      }
+      break;
+    case 'url-prefix':
+      if (typeof validURL.protocol !== 'string' || containsWildcard) {
+        _croak(
+          `Invalid 'url-prefix' rule: '${match}'\n` +
+            'URL prefix rules should contain the start of URLs you want to affect, including protocol. Wildcards are not permitted.'
+        );
+      }
+      break;
+    case 'domain':
+      if (
+        typeof validURL.protocol === 'string' ||
+        typeof validURL.port === 'string' ||
+        containsWildcard
+      ) {
+        _croak(
+          `Invalid 'domain' rule: '${match}'\n` +
+            'Domain rules should just be the domain name, without protocol, port, or wildcards. A domain rule will affect all pages on that domain and all of its subdomains.'
+        );
+      }
+      break;
+    default:
+      _croak(`Unknown or unsupported match type: '${type}'.`);
+  }
+}
+
+function _userstyleMatchtoUserCSSMatch(match, type) {
+  let documentRule;
+
+  switch (type) {
+    case 'url':
+      documentRule = `url('${match}')`;
+      break;
+    case 'url-prefix':
+      documentRule = `url-prefix('${match}')`;
+      break;
+    case 'domain':
+      documentRule = `domain('${match}')`;
+      break;
+    default:
+      _croak(`Unknown or unsupported match type: '${type}'.`);
+  }
+  return documentRule;
+}
+
+function _userstyleMatchtoUserJSMatch(match, type) {
+  let includeMatch = match;
+  const includeURLs = [];
+  switch (type) {
+    case 'url':
+      includeURLs.push(includeMatch);
+      break;
+    case 'url-prefix':
+      if (includeMatch[includeMatch.length - 1] !== '/') includeMatch += '/';
+      includeMatch += '*';
+      includeURLs.push(includeMatch);
+      break;
+    case 'domain':
+      if (includeMatch[includeMatch.length - 1] !== '/') includeMatch += '/';
+      includeURLs.push(`http://${includeMatch}*`);
+      includeURLs.push(`https://${includeMatch}*`);
+      includeURLs.push(`http://*.${includeMatch}*`);
+      includeURLs.push(`https://*.${includeMatch}*`);
+      break;
+    default:
+      _croak(`Unknown or unsupported match type: '${type}'.`);
+  }
+  return includeURLs;
 }
 
 /*
@@ -287,4 +416,9 @@ function _isAllowedJSMetaProp(prop) {
     typeof userstyleSpec[prop] === 'object' &&
     !_safePropGet('userjs', userstyleSpec[prop], true)
   );
+}
+
+function _croak(msg) {
+  if (msg) console.error(msg); // eslint-disable-line no-console
+  process.exit(1);
 }
