@@ -2,6 +2,14 @@
 
 > WIP: This is a get-something-working release that is just a partially implemented script. It needs to be refactored, modularized, tested, covered, & smothered.
 
+## Install
+
+Add to your project with:
+
+```shell
+npm install userstyle-gen --save-dev
+```
+
 ## css2userstyle
 
 Convert CSS to userstyles (user.css) and userscripts (user.js)
