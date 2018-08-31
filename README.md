@@ -2,6 +2,8 @@
 
 > WIP: This is a get-something-working release that is just a partially implemented script. It needs to be refactored, modularized, tested, covered, & smothered.
 
+---
+
 ## Install
 
 Add to your project with:
