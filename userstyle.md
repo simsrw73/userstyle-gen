@@ -1,71 +1,124 @@
-##  Documentation Sources
+# userstyle metadata
 
+This json format closely follows the [UserCSS format](https://github.com/openstyles/stylus/wiki/Usercss#usercss-metadata).
 
-### UserStyle
+- name (**required**)
 
-> <https://github.com/openstyles/stylus/wiki/Usercss>
+  The name of the style.
 
-@name
-@version
-@namespace
-@description
-@author
-@homepageURL
-@supportURL
-@updateURL
-@license
-@preprocessor
-@var
+- version (**required**)
 
+  The version of the release, using [Semantic Version](https://semver.org/) format.
 
-### Tampermonkey
+- namespace (**required**)
 
-> <https://tampermonkey.net/documentation.php>
+  Used to distinguish between styles with the same name. Usually author's nickname or homepage.
 
-// @name
-// @namespace
-// @version
-// @author
-// @description
-// @homepage, @homepageURL, @website and @source
-// @icon, @iconURL and @defaulticon
-// @icon64 and @icon64URL
-// @updateURL
-// @downloadURL
-// @supportURL
-// @include
-// @match
-// @exclude
-// @require
-// @resource
-// @connect
-// @run-at
-// @grant
-// @noframes
-// @unwrap
-// @nocompat
+- description
 
+  A short description of the style.
 
-### Greasemonkey
+- author
 
-> <https://sourceforge.net/p/greasemonkey/wiki/Metadata_Block>
+  The name of the author, optionally followed by an email address and/or homepage url. This can either be a string of the format:
 
-// @name
-// @run-at
-// @require
-// @version
-// @namespace
-// @include
-// @resource
-// @updateURL
-// @description
-// @exclude
-// @grant
-// @installURL (doesn't appear above in Tampermonkey docs)
-// @icon
-// @match
-// @unwrap
-// @downloadURL
-// @author
-// @noframes
-// @homepageURL
+  ```
+  {
+    "name": "John Doe <jdoe@gmail.com> (http://website.com/jdoe/)"
+  }
+  ```
+
+  or an object key:
+
+  ```
+  {
+    "name": "John Doe",
+    "email": "jdoe@gmail.com",
+    "url": "http://website.com/jdoe/"
+  }
+  ```
+
+- homepageURL
+
+  URL of the homepage for the theme.
+
+- supportURL
+
+  URL to the issue tracker for the theme.
+
+- updateURL
+
+  URL _path_ where the theme can be automatically updated. This is the path without the filename. The filename will be derived from the name of the output file during conversion. For userstyles, it will be the base filename with an added '.user.css' extension. For userscripts, it will be the base filename with an added '.meta.js' or '.user.js' extension.
+
+- license
+
+  The name of the license. Eg. MIT
+
+- preprocessor
+
+  This is defined in the UserCSS spec, but not used here as it is assumed the file is preprocessed during the build, before the conversion.
+
+- match
+
+  This is a list of rules that determine what website urls to apply the style to. For usercss, it is converted to [@-moz-document rules](https://github.com/stylish-userstyles/stylish/wiki/Valid-@-moz-document-rules). For userjs, it is converted to [#include rules](https://tampermonkey.net/documentation.php#_include).
+
+  Currently, we support the following:
+
+  - domain
+
+    Domain rules should just be the domain name, without protocol, port, or wildcards. A domain rule will affect all pages on that domain and all of its subdomains.
+
+  - url
+
+    URL rules should contain a URL you want to affect, including protocol. Wildcards are not permitted.
+
+  - url-prefix
+
+    URL prefix rules should contain the start of URLs you want to affect, including protocol. Wildcards are not permitted.
+
+  Each of the keys can either be a single string or an array of strings.
+
+  ```json
+  {
+    "match": {
+      "domain": "somewhere.com",
+      "url-prefix": [
+        "http://someplace.com/support",
+        "http://someplace.com/faqs"
+      ]
+    }
+  }
+  ```
+
+  This will produce the following usercss & userjs
+
+  ```
+  @-moz-document
+    domain('somewhere.com'),
+    url-prefix('http://someplace.com/support'),
+    url-prefix('http://someplace.com/faqs')
+  {...}
+  ```
+
+  ```
+  // @include       http://somewhere.com/*
+  // @include       https://somewhere.com/*
+  // @include       http://*.somewhere.com/*
+  // @include       https://*.somewhere.com/*
+  // @include       http://someplace.com/support/*
+  // @include       http://someplace.com/faqs/*
+  ```
+
+## See Also
+
+- UserStyle
+
+  <https://github.com/openstyles/stylus/wiki/Usercss>
+
+- Tampermonkey
+
+  <https://tampermonkey.net/documentation.php>
+
+- Greasemonkey
+
+  <https://sourceforge.net/p/greasemonkey/wiki/Metadata_Block>
