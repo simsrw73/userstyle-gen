@@ -28,10 +28,12 @@ const yargv = require('yargs')
       type: 'string'
     },
     'usercss-only': {
-      describe: 'Output only the user.css file'
+      describe: 'Output only the user.css file',
+      alias: 'userstyle-only'
     },
     'userjs-only': {
-      describe: 'Output only the user.js & meta.js files'
+      describe: 'Output only the user.js & meta.js files',
+      alias: 'userscript-only'
     }
   })
   .help()
@@ -137,7 +139,7 @@ const toUserCSS = through(
     nextFn();
   },
   function flush(flushFn) {
-    if (userCSSmeta.match && userCSSmeta.match.length) this.push('};');
+    if (userCSSmeta.match && userCSSmeta.match.length) this.push('}');
     flushFn();
   }
 );
