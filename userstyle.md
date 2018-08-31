@@ -46,7 +46,7 @@ URL of the homepage for the theme.
 
 URL to the issue tracker for the theme.
 
-### updateURL [string]
+### updateBaseURL [string]
 
 URL _path_ where the theme can be automatically updated. This is the path without the filename. The filename will be derived from the name of the output file during conversion. For userstyles, it will be the base filename with an added '.user.css' extension. For userscripts, it will be the base filename with an added '.meta.js' or '.user.js' extension.
 
