@@ -24,10 +24,12 @@
   },
   "main": "lib/index.js",
   "bin": {
-    "css2userstyle": "bin/css2userstyle.js"
+    "css2userstyle": "./bin/css2userstyle.js"
   },
   "files": [
-    "lib"
+    "userstyle.md",
+    "lib/index.js",
+    "bin"
   ],
   "engines": {
     "node": ">= 6.14.4",
