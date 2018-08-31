@@ -14,16 +14,16 @@ css2userstyle [options] <filename>
 
 This script takes a CSS file as input, along with metadata that describes the style, and produces userstyle (user.css) and userscript (meta.js & user.js) files for distributing themes.
 
-The metadata for the style is supplied in a `userstyle.json` file or from `package.json` file. For each known metadata attribute, it looks first in `userstyle.json`, then for a **_"userstyle"_** key in `package.json`, finally at the top level of the `package.json`, taking the first value found in that search order.
+The metadata for the style is supplied from a `userstyle.json` file in the current directory and/or from the `package.json` file. For each known metadata attribute, it looks first in `userstyle.json`, then for a **_"userstyle"_** key in `package.json`, finally at the top level of the `package.json`, taking the first value found in that search order.
 
-**See [userstyle](userstyle.md) for the metadata json format.**
+**See [userstyle](userstyle.md) to learn more about the metadata json format.**
 
 ### Options
 
-- basename
+- basename <filename>
 
   Normally, the output filename is derived from the name of the source file. You can change the base part of the filename, excluding the path, by specifying the `--basename` option.
 
-- output
+- output <directory>
 
   Allows specifying the directory path where the output files will be written.
