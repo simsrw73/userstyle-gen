@@ -76,38 +76,38 @@ Currently, we support the following:
 
   URL prefix rules should contain the start of URLs you want to affect, including protocol. Wildcards are not permitted.
 
-  Each of the keys can either be a single string or an array of strings.
+Each of the keys can either be a single string or an array of strings.
 
-  ```json
-  {
-    "match": {
-      "domain": "somewhere.com",
-      "url-prefix": [
-        "http://someplace.com/support",
-        "http://someplace.com/faqs"
-      ]
-    }
+```json
+{
+  "match": {
+    "domain": "somewhere.com",
+    "url-prefix": [
+      "http://someplace.com/support",
+      "http://someplace.com/faqs"
+    ]
   }
-  ```
+}
+```
 
-  This will produce the following usercss & userjs
+This will produce the following usercss & userjs
 
-  ```
-  @-moz-document
-    domain('somewhere.com'),
-    url-prefix('http://someplace.com/support'),
-    url-prefix('http://someplace.com/faqs')
-  {...}
-  ```
+```
+@-moz-document
+  domain('somewhere.com'),
+  url-prefix('http://someplace.com/support'),
+  url-prefix('http://someplace.com/faqs')
+{...}
+```
 
-  ```
-  // @include       http://somewhere.com/*
-  // @include       https://somewhere.com/*
-  // @include       http://*.somewhere.com/*
-  // @include       https://*.somewhere.com/*
-  // @include       http://someplace.com/support/*
-  // @include       http://someplace.com/faqs/*
-  ```
+```
+// @include       http://somewhere.com/*
+// @include       https://somewhere.com/*
+// @include       http://*.somewhere.com/*
+// @include       https://*.somewhere.com/*
+// @include       http://someplace.com/support/*
+// @include       http://someplace.com/faqs/*
+```
 
 ## See Also
 
