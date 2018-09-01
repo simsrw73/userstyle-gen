@@ -40,4 +40,4 @@ The metadata for the style is supplied from a `userstyle.json` file in the curre
 
 ## See Also
 
-[Boilerplate for creating User Styles](https://github.com/simsrw73/boilerplate-userstyle-theme) - Create your own themes, starting with this boilerplate.
+[Boilerplate for creating User Styles](https://github.com/simsrw73/boilerplate-userstyle-theme#readme) - Create your own themes, starting with this boilerplate.
