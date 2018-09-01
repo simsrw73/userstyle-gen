@@ -37,3 +37,7 @@ The metadata for the style is supplied from a `userstyle.json` file in the curre
 - output <directory>
 
   Allows specifying the directory path where the output files will be written.
+
+## See Also
+
+[Boilerplate for creating User Styles](https://github.com/simsrw73/boilerplate-userstyle-theme) - Create your own themes, starting with this boilerplate.
