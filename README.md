@@ -28,6 +28,7 @@ The metadata for the style is supplied from a `userstyle.json` file in the curre
 
 **See [userstyle](userstyle.md) to learn more about the metadata json format.**
 
+
 ### Options
 
 - basename <filename>
@@ -45,3 +46,8 @@ The metadata for the style is supplied from a `userstyle.json` file in the curre
 - no-userscript [boolean]
 
   Do not output a userscript (.user.js) file.
+
+
+## See Also
+
+[Boilerplate for creating User Styles](https://github.com/simsrw73/boilerplate-userstyle-theme#readme) - Create your own themes, starting with this boilerplate.
