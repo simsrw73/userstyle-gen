@@ -27,13 +27,17 @@ const yargv = require('yargs')
       requiresArg: true,
       type: 'string'
     },
-    'usercss-only': {
-      describe: 'Output only the user.css file',
-      alias: 'userstyle-only'
+    userstyle: {
+      describe: 'Do not output userstyle (.user.css)',
+      alias: 'usercss',
+      type: 'boolean',
+      default: true
     },
-    'userjs-only': {
-      describe: 'Output only the user.js & meta.js files',
-      alias: 'userscript-only'
+    userscript: {
+      describe: 'Do not output userscript (.user.js)',
+      alias: 'userjs',
+      type: 'boolean',
+      default: true
     }
   })
   .help()
@@ -51,10 +55,6 @@ const userCSSFilename = path.join(destDir, `${destBasename}.user.css`);
 
 const source = fs.createReadStream(srcPathname, { encoding: 'utf8' });
 const lineStream = byline.createStream(source);
-
-const metaJS = fs.createWriteStream(metaJSFilename, { encoding: 'utf8' });
-const userJS = fs.createWriteStream(userJSFilename, { encoding: 'utf8' });
-const userCSS = fs.createWriteStream(userCSSFilename, { encoding: 'utf8' });
 
 const userstyleSpec = {
   name: {
@@ -117,7 +117,7 @@ function formatUserstyleCSSHeader(metadata) {
   Object.keys(userstyleSpec).forEach(prop => {
     if (_safePropGet(prop, CSSmeta) && _isAllowedCSSMetaProp(prop)) {
       if (prop === 'match') {
-        documentRules = metadata.match;
+        documentRules = CSSmeta.match;
       } else {
         header += `@${_padPropName(prop, longestPropLength)} ${CSSmeta[prop]}\n`;
       }
@@ -131,8 +131,6 @@ function formatUserstyleCSSHeader(metadata) {
   return header;
 }
 
-userCSS.write(formatUserstyleCSSHeader(userCSSmeta));
-
 const toUserCSS = through(
   function write(line, enc, nextFn) {
     this.push(`  ${line}\n`); // TODO: Here and JS, don't indent if there are no document rules.
@@ -144,7 +142,11 @@ const toUserCSS = through(
   }
 );
 
-lineStream.pipe(toUserCSS).pipe(userCSS);
+if (yargv.userstyle) {
+  const userCSS = fs.createWriteStream(userCSSFilename, { encoding: 'utf8' });
+  userCSS.write(formatUserstyleCSSHeader(userCSSmeta));
+  lineStream.pipe(toUserCSS).pipe(userCSS);
+}
 
 /*
  *
@@ -159,9 +161,10 @@ function formatUserJSHeader(metadata) {
   header += '// ==UserScript==\n';
 
   Object.keys(userstyleSpec).forEach(prop => {
-    if (_safePropGet(prop, JSmeta) && _isAllowedJSMetaProp(prop)) {
+    const value = _safePropGet(prop, JSmeta);
+    if (value && _isAllowedJSMetaProp(prop)) {
       if (prop === 'match') {
-        _safePropGet(prop, JSmeta).forEach(include => {
+        value.forEach(include => {
           header += `// @${_padPropName('include', longestPropLength)} ${include}\n`;
         });
       } else {
@@ -173,11 +176,6 @@ function formatUserJSHeader(metadata) {
   header += '// ==/UserScript==\n';
   return header;
 }
-
-const userJSHeader = formatUserJSHeader(userJSmeta);
-metaJS.write(userJSHeader);
-userJS.write(userJSHeader);
-userJS.write('(function() {var css = [\n');
 
 const toUserJS = through(
   function write(line, enc, nextFn) {
@@ -216,7 +214,18 @@ if (typeof GM_addStyle != "undefined") {
   }
 );
 
-lineStream.pipe(toUserJS).pipe(userJS);
+console.log(yargv);
+if (yargv.userscript) {
+  const metaJS = fs.createWriteStream(metaJSFilename, { encoding: 'utf8' });
+  const userJS = fs.createWriteStream(userJSFilename, { encoding: 'utf8' });
+
+  const userJSHeader = formatUserJSHeader(userJSmeta);
+  metaJS.write(userJSHeader);
+  userJS.write(userJSHeader);
+
+  userJS.write('(function() {var css = [\n');
+  lineStream.pipe(toUserJS).pipe(userJS);
+}
 
 /*
  *
@@ -233,12 +242,13 @@ function resolveMeta() {
   const JSMeta = {};
 
   // TODO: Handle case where no value & no default
+  // breaks in several places: no match rule, UpdateURL instead of UpdateBaseUrl
   Object.entries(userstyleSpec).forEach(entry => {
     const [prop, spec] = entry;
-    let value = _getFirstPropOf(prop, [userstyleJSON, packageUserstyle, packageJSON]);
     const isObjectSpec = typeof userstyleSpec[prop] === 'object';
 
-    // Assign default value if no value given
+    // Resolve value and assign default value if no value given
+    let value = _getFirstPropOf(prop, [userstyleJSON, packageUserstyle, packageJSON]);
     if (typeof value === 'undefined' && isObjectSpec) {
       value = _safePropGet('default', spec);
     }

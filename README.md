@@ -37,3 +37,11 @@ The metadata for the style is supplied from a `userstyle.json` file in the curre
 - output <directory>
 
   Allows specifying the directory path where the output files will be written.
+
+- no-userstyle [boolean]
+
+  Do not output a userstyle (.user.css) file.
+
+- no-userscript [boolean]
+
+  Do not output a userscript (.user.js) file.
