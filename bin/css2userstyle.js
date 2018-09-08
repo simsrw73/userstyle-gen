@@ -214,7 +214,6 @@ if (typeof GM_addStyle != "undefined") {
   }
 );
 
-console.log(yargv);
 if (yargv.userscript) {
   const metaJS = fs.createWriteStream(metaJSFilename, { encoding: 'utf8' });
   const userJS = fs.createWriteStream(userJSFilename, { encoding: 'utf8' });
@@ -351,12 +350,17 @@ function _validateMatchURL(match, type) {
         );
       }
       break;
+    case 'regexp':
+      break;
     default:
       _croak(`Unknown or unsupported match type: '${type}'.`);
   }
 }
 
 function _userstyleMatchtoUserCSSMatch(match, type) {
+  if (!yargv.userstyle) {
+    return [];
+  }
   let documentRule;
 
   switch (type) {
@@ -369,6 +373,9 @@ function _userstyleMatchtoUserCSSMatch(match, type) {
     case 'domain':
       documentRule = `domain('${match}')`;
       break;
+    case 'regexp':
+      documentRule = `regexp('${match}')`;
+      break;
     default:
       _croak(`Unknown or unsupported match type: '${type}'.`);
   }
@@ -376,6 +383,9 @@ function _userstyleMatchtoUserCSSMatch(match, type) {
 }
 
 function _userstyleMatchtoUserJSMatch(match, type) {
+  if (!yargv.userscript) {
+    return [];
+  }
   let includeMatch = match;
   const includeURLs = [];
   switch (type) {
